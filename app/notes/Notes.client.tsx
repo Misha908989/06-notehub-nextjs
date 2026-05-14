@@ -4,8 +4,9 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchNotes } from "@/lib/api";
 import NoteList from "@/components/NoteList/NoteList";
-import SearchBar from "@/components/SearchBar/SearchBar";
+import SearchBox from "@/components/SearchBox/SearchBox";
 import NoteForm from "@/components/NoteForm/NoteForm";
+import Pagination from "@/components/Pagination/Pagination";
 import css from "./notes.module.css";
 
 export default function NotesClient() {
@@ -29,38 +30,19 @@ export default function NotesClient() {
   return (
     <div className={css.wrapper}>
       <div className={css.controls}>
-        <SearchBar onSearch={handleSearch} initialValue={search} />
-        <button
-          className={css.createButton}
-          onClick={() => setShowForm(true)}
-        >
+        <SearchBox onSearch={handleSearch} initialValue={search} />
+        <button className={css.createButton} onClick={() => setShowForm(true)}>
           + New Note
         </button>
       </div>
 
       <NoteList notes={data?.notes ?? []} />
 
-      {data && data.totalPages > 1 && (
-        <div className={css.pagination}>
-          <button
-            onClick={() => setPage((p) => Math.max(p - 1, 1))}
-            disabled={page === 1}
-            className={css.pageButton}
-          >
-            Previous
-          </button>
-          <span className={css.pageInfo}>
-            {page} / {data.totalPages}
-          </span>
-          <button
-            onClick={() => setPage((p) => Math.min(p + 1, data.totalPages))}
-            disabled={page === data.totalPages}
-            className={css.pageButton}
-          >
-            Next
-          </button>
-        </div>
-      )}
+      <Pagination
+        currentPage={page}
+        totalPages={data?.totalPages ?? 1}
+        onPageChange={setPage}
+      />
 
       {showForm && <NoteForm onClose={() => setShowForm(false)} />}
     </div>
