@@ -7,6 +7,7 @@ import { fetchNotes } from "@/lib/api";
 import NoteList from "@/components/NoteList/NoteList";
 import SearchBox from "@/components/SearchBox/SearchBox";
 import NoteForm from "@/components/NoteForm/NoteForm";
+import Modal from "@/components/Modal/Modal";
 import Pagination from "@/components/Pagination/Pagination";
 import css from "./notes.module.css";
 
@@ -51,7 +52,11 @@ export default function NotesClient() {
         onPageChange={setPage}
       />
 
-      {showForm && <NoteForm onClose={() => setShowForm(false)} />}
+      {showForm && (
+        <Modal onClose={() => setShowForm(false)}>
+          <NoteForm onClose={() => setShowForm(false)} />
+        </Modal>
+      )}
     </div>
   );
 }
