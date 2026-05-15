@@ -1,23 +1,26 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useFormik } from "formik";
+import * as Yup from "yup";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createNote } from "@/lib/api";
 import { CreateNoteData, NoteTag } from "@/types/note";
 import Modal from "@/components/Modal/Modal";
 import css from "./NoteForm.module.css";
 
-const TAGS: NoteTag[] = ["Todo", "Work", "Personal", "Meeting", "Shopping", "Other"];
+const TAGS: NoteTag[] = ["Todo", "Work", "Personal", "Meeting", "Shopping"];
+
+const validationSchema = Yup.object({
+  title: Yup.string().required("Title is required"),
+  content: Yup.string(),
+  tag: Yup.string().oneOf(TAGS).required("Tag is required"),
+});
 
 interface NoteFormProps {
   onClose: () => void;
 }
 
 export default function NoteForm({ onClose }: NoteFormProps) {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [tag, setTag] = useState<NoteTag>("Todo");
-
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
@@ -28,41 +31,59 @@ export default function NoteForm({ onClose }: NoteFormProps) {
     },
   });
 
-  function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (!title.trim() || !content.trim()) return;
-    mutation.mutate({ title: title.trim(), content: content.trim(), tag });
-  }
+  const formik = useFormik<CreateNoteData>({
+    initialValues: {
+      title: "",
+      content: "",
+      tag: "Todo",
+    },
+    validationSchema,
+    onSubmit: (values) => {
+      mutation.mutate(values);
+    },
+  });
 
   return (
     <Modal onClose={onClose}>
       <h2 className={css.heading}>Create New Note</h2>
-      <form onSubmit={handleSubmit} className={css.form}>
+      <form onSubmit={formik.handleSubmit} className={css.form}>
         <label className={css.label}>
           Title
           <input
             type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            name="title"
+            value={formik.values.title}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
             className={css.input}
-            required
           />
+          {formik.touched.title && formik.errors.title && (
+            <span className={css.error}>{formik.errors.title}</span>
+          )}
         </label>
+
         <label className={css.label}>
           Content
           <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
+            name="content"
+            value={formik.values.content}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
             className={css.textarea}
             rows={4}
-            required
           />
+          {formik.touched.content && formik.errors.content && (
+            <span className={css.error}>{formik.errors.content}</span>
+          )}
         </label>
+
         <label className={css.label}>
           Tag
           <select
-            value={tag}
-            onChange={(e) => setTag(e.target.value as NoteTag)}
+            name="tag"
+            value={formik.values.tag}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
             className={css.select}
           >
             {TAGS.map((t) => (
@@ -71,7 +92,11 @@ export default function NoteForm({ onClose }: NoteFormProps) {
               </option>
             ))}
           </select>
+          {formik.touched.tag && formik.errors.tag && (
+            <span className={css.error}>{formik.errors.tag}</span>
+          )}
         </label>
+
         <div className={css.actions}>
           <button type="button" onClick={onClose} className={css.cancelButton}>
             Cancel
@@ -79,11 +104,12 @@ export default function NoteForm({ onClose }: NoteFormProps) {
           <button
             type="submit"
             className={css.submitButton}
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || !formik.isValid}
           >
             {mutation.isPending ? "Creating..." : "Create"}
           </button>
         </div>
+
         {mutation.isError && (
           <p className={css.error}>Failed to create note. Try again.</p>
         )}

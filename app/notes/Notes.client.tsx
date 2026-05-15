@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useDebounce } from "use-debounce";
 import { fetchNotes } from "@/lib/api";
 import NoteList from "@/components/NoteList/NoteList";
 import SearchBox from "@/components/SearchBox/SearchBox";
@@ -14,29 +15,35 @@ export default function NotesClient() {
   const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
 
+  const [debouncedSearch] = useDebounce(search, 300);
+
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["notes", page, search],
-    queryFn: () => fetchNotes(page, search),
+    queryKey: ["notes", page, debouncedSearch],
+    queryFn: () => fetchNotes(page, debouncedSearch),
+    placeholderData: (previousData) => previousData,
   });
 
-  function handleSearch(query: string) {
-    setSearch(query);
+  function handleSearchChange(value: string) {
+    setSearch(value);
     setPage(1);
   }
 
   if (isLoading) return <p>Loading, please wait...</p>;
-  if (isError) return <p>Could not fetch the list of notes. {(error as Error).message}</p>;
+  if (isError)
+    return (
+      <p>Could not fetch the list of notes. {(error as Error).message}</p>
+    );
 
   return (
     <div className={css.wrapper}>
       <div className={css.controls}>
-        <SearchBox onSearch={handleSearch} initialValue={search} />
+        <SearchBox value={search} onChange={handleSearchChange} />
         <button className={css.createButton} onClick={() => setShowForm(true)}>
           + New Note
         </button>
       </div>
 
-      <NoteList notes={data?.notes ?? []} />
+      {data && data.notes.length > 0 && <NoteList notes={data.notes} />}
 
       <Pagination
         currentPage={page}
